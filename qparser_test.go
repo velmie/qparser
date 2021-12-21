@@ -462,11 +462,74 @@ var (
 func TestValuesGet(t *testing.T) {
 	for _, tt := range valuesGetTests {
 		if r := values.Get(tt.in, tt.nested...); r != tt.out {
+			nested := strings.Join(tt.nested, `", "`)
+			if nested != "" {
+				nested = `, "` + nested + `"`
+			}
 			t.Errorf(
-				`values.Get(%q) returned %q, want %q"`,
+				`values.Get(%q%s) returned %q, want %q"`,
 				tt.in,
+				nested,
 				r,
 				tt.out,
+			)
+		}
+	}
+}
+
+type valuesGetExistTest struct {
+	in     string
+	nested []string
+	outV   string
+	outOk  bool
+}
+
+var (
+	valuesE = Values{
+		"page": []Value{
+			{
+				TopLevelKey: "page",
+				NestedKeys:  []string{"size"},
+				Value:       "10",
+			},
+		},
+	}
+	valuesGetExistTests = []valuesGetExistTest{
+		{
+			in:     "page",
+			nested: []string{"size"},
+			outV:   "10",
+			outOk:  true,
+		},
+		{
+			in:     "page",
+			nested: []string{"size", "na"},
+			outV:   "",
+			outOk:  false,
+		},
+		{
+			in:    "na",
+			outV:  "",
+			outOk: false,
+		},
+	}
+)
+
+func TestValuesGetExist(t *testing.T) {
+	for _, tt := range valuesGetExistTests {
+		if r, ok := valuesE.GetExist(tt.in, tt.nested...); r != tt.outV || ok != tt.outOk {
+			nested := strings.Join(tt.nested, `", "`)
+			if nested != "" {
+				nested = `, "` + nested + `"`
+			}
+			t.Errorf(
+				`values.GetExist(%q%s) returned %q, %t; want %q, %t"`,
+				tt.in,
+				nested,
+				r,
+				ok,
+				tt.outV,
+				tt.outOk,
 			)
 		}
 	}

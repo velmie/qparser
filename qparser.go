@@ -100,16 +100,17 @@ type Value struct {
 // Values maps a string top key to a list of values and nested keys.
 type Values map[string][]Value
 
-// Get gets the first value associated with the top key which contains all the nested keys.
-// If there are no values associated with the combination, Get returns
+// GetExist retrieves the first value associated with the top key which contains all the nested keys.
+// Second return value determines whether the value is exist.
+// If there are no values associated with the combination, then GetExist returns
 // the empty string. To access multiple values, use the map directly.
-func (v Values) Get(topKey string, nestedKeys ...string) string {
+func (v Values) GetExist(topKey string, nestedKeys ...string) (string, bool) {
 	if v == nil {
-		return ""
+		return "", false
 	}
 	list := v[topKey]
 	if len(list) == 0 {
-		return ""
+		return "", false
 	}
 
 	for _, item := range list {
@@ -117,7 +118,7 @@ func (v Values) Get(topKey string, nestedKeys ...string) string {
 			continue
 		}
 		if len(item.NestedKeys) == 0 && len(nestedKeys) == 0 {
-			return item.Value
+			return item.Value, true
 		}
 		match := true
 		for i, key := range nestedKeys {
@@ -127,10 +128,18 @@ func (v Values) Get(topKey string, nestedKeys ...string) string {
 			}
 		}
 		if match {
-			return item.Value
+			return item.Value, true
 		}
 	}
-	return ""
+	return "", false
+}
+
+// Get retrieves the first value associated with the top key which contains all the nested keys.
+// If there are no values associated with the combination, Get returns
+// the empty string. To access multiple values, use the map directly.
+func (v Values) Get(topKey string, nestedKeys ...string) string {
+	val, _ := v.GetExist(topKey, nestedKeys...)
+	return val
 }
 
 // Query contains all parameters read from the query string
