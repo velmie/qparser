@@ -163,11 +163,6 @@ const (
 // Query can contain nested keys, which are defined by square brackets,
 // for example: page[size], page[number]
 func ParseValues(query string) (Values, error) {
-	var err error
-	query, err = url.QueryUnescape(query)
-	if err != nil {
-		return nil, fmt.Errorf("qparser: failed to unescape query: %s", err.Error())
-	}
 	values := make(Values)
 	if query != "" && query[0] == '?' {
 		query = query[1:]
@@ -186,6 +181,17 @@ func ParseValues(query string) (Values, error) {
 		if i := strings.Index(key, "="); i >= 0 {
 			key, value = key[:i], key[i+1:]
 		}
+
+		key, err := url.QueryUnescape(key)
+		if err != nil {
+			return nil, fmt.Errorf("qparser: failed to unescape query param name: %s", err.Error())
+		}
+
+		value, _ = url.QueryUnescape(value)
+		if err != nil {
+			return nil, fmt.Errorf("qparser: failed to unescape query param value: %s", err.Error())
+		}
+
 		topKey, nestedKeys := extractKeys(key)
 		kv := Value{
 			TopLevelKey: topKey,
@@ -230,7 +236,8 @@ func ParseQuery(query string) (*Query, error) {
 // "/articles/42" - request of article with id 42
 // "/articles/42/author" - request of an author related to the article with id 42
 // "/article/42/relationships/author" - relationships request
-//  see https://jsonapi.org/format/#document-resource-object-relationships
+//
+//	see https://jsonapi.org/format/#document-resource-object-relationships
 //
 // for the query part description see "ParseQuery"
 func ParseRequest(params string) (*Request, error) {
@@ -438,32 +445,35 @@ const (
 // the required inclusions can be implemented
 // example:
 //
-//  query := "include=author,comments.author,comments.replies"
-// 	values, err := ParseValues(query)
-//	if err != nil {
-//		return nil, err
-//	}
-//  includes := initIncludes(values)
-//  ...
+//	 query := "include=author,comments.author,comments.replies"
+//		values, err := ParseValues(query)
+//		if err != nil {
+//			return nil, err
+//		}
+//	 includes := initIncludes(values)
+//	 ...
+//
 // [
-//  {
-//    "Relation": "author",
-//    "Includes": null
-//  },
-//  {
-//    "Relation": "comments",
-//    "Includes": [
-//      {
-//        "Relation": "author",
-//        "Includes": null
-//      },
-//      {
-//        "Relation": "replies",
-//        "Includes": null
-//      }
-//    ]
-//  }
-//]
+//
+//	{
+//	  "Relation": "author",
+//	  "Includes": null
+//	},
+//	{
+//	  "Relation": "comments",
+//	  "Includes": [
+//	    {
+//	      "Relation": "author",
+//	      "Includes": null
+//	    },
+//	    {
+//	      "Relation": "replies",
+//	      "Includes": null
+//	    }
+//	  ]
+//	}
+//
+// ]
 func initIncludes(values Values) []Include {
 	incValues, ok := values[includeKeyword]
 	if !ok {
